@@ -1,0 +1,21 @@
+{
+  "searchQueries": [
+    "python tutorials 2024",
+    "machine learning beginners"
+  ],
+  "channelUrls": [
+    "https://www.youtube.com/@TechWithTim"
+  ],
+  "videoUrls": [
+    "https://www.youtube.com/watch?v=rfscVS0vtbw"
+  ],
+  "maxResults": 10,
+  "sortBy": "relevance",
+  "uploadDateFilter": "this_year",
+  "scrapeTrending": false,
+  "maxComments": 0,
+  "concurrency": 3,
+  "proxyConfiguration": {
+    "useApifyProxy": false
+  }
+}

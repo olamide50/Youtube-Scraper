@@ -1,0 +1,84 @@
+{
+  "title": "YouTube Scraper Input",
+  "type": "object",
+  "schemaVersion": 1,
+  "properties": {
+    "searchQueries": {
+      "title": "Search queries",
+      "type": "array",
+      "description": "List of YouTube search keywords. Each query returns up to maxResults videos.",
+      "editor": "stringList",
+      "prefill": ["python tutorial 2024"]
+    },
+    "channelUrls": {
+      "title": "Channel URLs",
+      "type": "array",
+      "description": "List of YouTube channel URLs to scrape (e.g. https://www.youtube.com/@PythonEngineer).",
+      "editor": "stringList",
+      "prefill": []
+    },
+    "videoUrls": {
+      "title": "Video URLs",
+      "type": "array",
+      "description": "List of individual YouTube video URLs to scrape for full details.",
+      "editor": "stringList",
+      "prefill": []
+    },
+    "maxResults": {
+      "title": "Max results per query / channel",
+      "type": "integer",
+      "description": "Maximum number of videos to return per search query or channel.",
+      "default": 20,
+      "minimum": 1,
+      "maximum": 500
+    },
+    "sortBy": {
+      "title": "Sort search results by",
+      "type": "string",
+      "description": "Sorting order for search results.",
+      "enum": ["relevance", "upload_date", "view_count", "rating"],
+      "enumTitles": ["Relevance", "Upload date", "View count", "Rating"],
+      "default": "relevance"
+    },
+    "uploadDateFilter": {
+      "title": "Upload date filter",
+      "type": "string",
+      "description": "Filter search results by upload date.",
+      "enum": ["all", "last_hour", "today", "this_week", "this_month", "this_year"],
+      "enumTitles": ["Any time", "Last hour", "Today", "This week", "This month", "This year"],
+      "default": "all"
+    },
+    "scrapeTrending": {
+      "title": "Scrape trending videos",
+      "type": "boolean",
+      "description": "When enabled, also scrapes the YouTube trending feed.",
+      "default": false
+    },
+    "maxComments": {
+      "title": "Max comments per video",
+      "type": "integer",
+      "description": "Number of comments to scrape per video (0 = disabled). Increases run time significantly.",
+      "default": 0,
+      "minimum": 0,
+      "maximum": 200
+    },
+    "concurrency": {
+      "title": "Concurrency",
+      "type": "integer",
+      "description": "Maximum number of simultaneous HTTP requests. Lower values reduce ban risk.",
+      "default": 5,
+      "minimum": 1,
+      "maximum": 20
+    },
+    "proxyConfiguration": {
+      "title": "Proxy configuration",
+      "type": "object",
+      "description": "Apify proxy configuration. Recommended to avoid IP bans at scale.",
+      "editor": "proxy",
+      "prefill": {
+        "useApifyProxy": true,
+        "apifyProxyGroups": ["RESIDENTIAL"]
+      }
+    }
+  }
+}

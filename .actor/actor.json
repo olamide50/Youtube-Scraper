@@ -1,0 +1,52 @@
+{
+  "actorSpecification": 1,
+  "name": "youtube-scraper",
+  "title": "YouTube Scraper",
+  "description": "Scrapes YouTube videos, channels, search results, trending feed and comments without the official API.",
+  "version": "1.0",
+  "buildTag": "latest",
+  "dockerfile": "../Dockerfile",
+  "readme": "../README.md",
+  "input": "../.actor/input_schema.json",
+  "storages": {
+    "dataset": {
+      "actorSpecification": 1,
+      "fields": {},
+      "views": {
+        "overview": {
+          "title": "Overview",
+          "transformation": {
+            "fields": [
+              "video_id",
+              "title",
+              "channel_name",
+              "views",
+              "likes",
+              "upload_date",
+              "duration",
+              "video_url",
+              "thumbnail_url"
+            ]
+          },
+          "display": {
+            "component": "table",
+            "properties": {
+              "thumbnail_url": {
+                "label": "Thumbnail",
+                "format": "image"
+              },
+              "video_url": {
+                "label": "Video URL",
+                "format": "link"
+              },
+              "channel_url": {
+                "label": "Channel URL",
+                "format": "link"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
