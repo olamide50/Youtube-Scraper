@@ -157,15 +157,11 @@ class YouTubeScraper:
     # ------------------------------------------------------------------
 
     async def __aenter__(self) -> "YouTubeScraper":
-        proxies: dict[str, str] | None = None
-        if self.proxy_url:
-            proxies = {"http://": self.proxy_url, "https://": self.proxy_url}
-
         self._client = httpx.AsyncClient(
             headers=get_random_headers(),
             follow_redirects=True,
             timeout=httpx.Timeout(30.0, connect=15.0),
-            proxies=proxies,
+            proxy=self.proxy_url,  # httpx>=0.23 uses proxy= (str|None), not proxies=
             http2=True,
         )
         return self
