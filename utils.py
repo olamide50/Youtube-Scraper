@@ -82,30 +82,51 @@ def get_api_headers(user_agent: str | None = None) -> dict[str, str]:
 # ---------------------------------------------------------------------------
 # ytInitialData / ytInitialPlayerResponse extraction
 # ---------------------------------------------------------------------------
+#
+# YouTube embeds these objects as JS variable assignments inside <script> tags.
+# The values are deeply nested JSON (100+ levels), so regex with .*? (non-greedy)
+# stops at the very first "}" and produces truncated, unparseable JSON.
+# json.JSONDecoder.raw_decode() handles arbitrary nesting correctly by tracking
+# brace depth internally — it is the only reliable approach.
 
-# Patterns ordered from most specific to most general
-_YT_INITIAL_DATA_PATTERNS: list[re.Pattern[str]] = [
-    re.compile(r'var ytInitialData\s*=\s*(\{.*?\});\s*</script>', re.DOTALL),
-    re.compile(r'var ytInitialData\s*=\s*(\{.*?\});\s*(?:var |window\.)', re.DOTALL),
-    re.compile(r'ytInitialData\s*=\s*(\{.*?\});', re.DOTALL),
+# Markers to locate the start of each JSON object in the raw HTML
+_YT_INITIAL_DATA_MARKERS: list[str] = [
+    "var ytInitialData = ",
+    "window[\"ytInitialData\"] = ",
+    "ytInitialData = ",
 ]
 
-_YT_INITIAL_PLAYER_PATTERNS: list[re.Pattern[str]] = [
-    re.compile(r'var ytInitialPlayerResponse\s*=\s*(\{.*?\});\s*</script>', re.DOTALL),
-    re.compile(r'var ytInitialPlayerResponse\s*=\s*(\{.*?\});\s*(?:var |window\.)', re.DOTALL),
-    re.compile(r'ytInitialPlayerResponse\s*=\s*(\{.*?\});', re.DOTALL),
+_YT_INITIAL_PLAYER_MARKERS: list[str] = [
+    "var ytInitialPlayerResponse = ",
+    "window[\"ytInitialPlayerResponse\"] = ",
+    "ytInitialPlayerResponse = ",
 ]
 
+_JSON_DECODER = json.JSONDecoder()
 
-def _try_extract(html: str, patterns: list[re.Pattern[str]]) -> dict[str, Any] | None:
-    """Try each regex pattern in order and return the first valid JSON dict."""
-    for pattern in patterns:
-        match = pattern.search(html)
-        if match:
-            try:
-                return json.loads(match.group(1))
-            except json.JSONDecodeError:
-                continue
+
+def _raw_decode_at_marker(html: str, markers: list[str]) -> dict[str, Any] | None:
+    """
+    Locate the first matching marker in *html*, then use raw_decode to parse
+    the JSON object that follows it.  Returns None if no marker is found or
+    parsing fails for every marker.
+    """
+    for marker in markers:
+        idx = html.find(marker)
+        if idx == -1:
+            continue
+        start = idx + len(marker)
+        # Skip optional whitespace between '=' and '{'
+        while start < len(html) and html[start] in (" ", "\t", "\n", "\r"):
+            start += 1
+        if start >= len(html) or html[start] != "{":
+            continue
+        try:
+            obj, _ = _JSON_DECODER.raw_decode(html, start)
+            if isinstance(obj, dict):
+                return obj
+        except json.JSONDecodeError:
+            continue
     return None
 
 
@@ -116,7 +137,7 @@ def extract_yt_initial_data(html: str) -> dict[str, Any]:
     Raises:
         ValueError: if the object cannot be found or parsed.
     """
-    data = _try_extract(html, _YT_INITIAL_DATA_PATTERNS)
+    data = _raw_decode_at_marker(html, _YT_INITIAL_DATA_MARKERS)
     if data is None:
         raise ValueError("ytInitialData not found in page HTML")
     return data
@@ -130,7 +151,7 @@ def extract_yt_initial_player_response(html: str) -> dict[str, Any]:
     Raises:
         ValueError: if the object cannot be found or parsed.
     """
-    data = _try_extract(html, _YT_INITIAL_PLAYER_PATTERNS)
+    data = _raw_decode_at_marker(html, _YT_INITIAL_PLAYER_MARKERS)
     if data is None:
         raise ValueError("ytInitialPlayerResponse not found in page HTML")
     return data

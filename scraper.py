@@ -330,6 +330,14 @@ class YouTubeScraper:
         )
         if primary:
             videos, continuation_token = self._parse_search_contents(primary)
+        else:
+            # Log top-level keys so we can diagnose unexpected page structures
+            top_keys = list(data.keys()) if isinstance(data, dict) else []
+            logger.warning(
+                "search_videos(%r): twoColumnSearchResultsRenderer not found. "
+                "Top-level ytInitialData keys: %s",
+                query, top_keys,
+            )
 
         # Paginate until max_results satisfied
         while len(videos) < self.max_results and continuation_token:
@@ -875,6 +883,11 @@ class YouTubeScraper:
         video_urls: list[str] = input_data.get("videoUrls") or []
         do_trending: bool = bool(input_data.get("scrapeTrending", False))
         max_comments: int = int(input_data.get("maxComments", 0))
+
+        logger.info(
+            "Tasks: %d search queries, %d channel URLs, %d video URLs, trending=%s",
+            len(search_queries), len(channel_urls), len(video_urls), do_trending,
+        )
 
         results: list[dict] = []
 
