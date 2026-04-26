@@ -49,8 +49,9 @@ _ACCEPT_LANGUAGES: list[str] = [
 
 def get_random_headers() -> dict[str, str]:
     """Return a randomised set of browser-like HTTP request headers."""
-    return {
-        "User-Agent": random.choice(_USER_AGENTS),
+    ua = random.choice(_USER_AGENTS)
+    headers: dict[str, str] = {
+        "User-Agent": ua,
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
         "Accept-Language": random.choice(_ACCEPT_LANGUAGES),
         "Accept-Encoding": "gzip, deflate, br",
@@ -61,7 +62,19 @@ def get_random_headers() -> dict[str, str]:
         "Sec-Fetch-Site": "none",
         "Sec-Fetch-User": "?1",
         "Cache-Control": "max-age=0",
+        # SOCS = pre-accepted YouTube consent cookie (avoids 403 consent-wall).
+        # CONSENT is the older fallback value kept for compatibility.
+        "Cookie": "SOCS=CAESEwgDEgk0NTY3MjI; CONSENT=YES+1",
     }
+    # Add Client Hints for Chrome UAs so the request fingerprint matches.
+    chrome_match = re.search(r"Chrome/(\d+)", ua)
+    if chrome_match:
+        v = chrome_match.group(1)
+        platform = "Windows" if "Windows" in ua else ("macOS" if "Mac" in ua else "Linux")
+        headers["sec-ch-ua"] = f'"Google Chrome";v="{v}", "Chromium";v="{v}", "Not-A.Brand";v="99"'
+        headers["sec-ch-ua-mobile"] = "?0"
+        headers["sec-ch-ua-platform"] = f'"{platform}"'
+    return headers
 
 
 def get_api_headers(user_agent: str | None = None) -> dict[str, str]:
@@ -349,9 +362,10 @@ async def async_retry(
             last_exc = exc
             if attempt == max_retries:
                 break
-            # For HTTP status errors only retry on 429 / 5xx
+            # For HTTP status errors retry on 403 (proxy rotation may get a
+            # clean IP), 429 (rate-limited), and transient 5xx errors.
             if isinstance(exc, httpx.HTTPStatusError):
-                if exc.response.status_code not in {429, 500, 502, 503, 504}:
+                if exc.response.status_code not in {403, 429, 500, 502, 503, 504}:
                     raise
             delay = (backoff_base ** attempt) + random.uniform(0, jitter)
             logger.warning(
